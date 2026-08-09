@@ -1,0 +1,13 @@
+# Source and docs: normalise to LF in the repository.
+* text=auto eol=lf
+
+# Evidence and commitments: NEVER touched by git.
+#
+# This is not a style preference. A captured packet is committed by its BLAKE3
+# hash, and `cosign` signs manifest bytes. If git rewrote a CRLF on checkout —
+# or normalised one on commit — the bytes on disk would no longer be the bytes
+# that were hashed and signed, and every proof over that record would fail
+# verification for a reason no one would think to look for.
+archive/**  -text
+artifacts/** -text
+state/**    -text
