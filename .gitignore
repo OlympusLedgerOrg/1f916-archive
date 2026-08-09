@@ -1,0 +1,7 @@
+/target
+**/*.rs.bk
+
+# Working files from a run. Never ignore anything under archive/ or artifacts/:
+# those are the evidence and the commitments.
+*.tmp
+state/*.json.tmp

@@ -1,0 +1,36 @@
+# Standalone workspace root. This repository is deliberately NOT part of the
+# Olympus Cargo workspace; it consumes the Olympus dataset-manifest CLI as a
+# pinned external binary, never as a path dependency.
+[workspace]
+
+[package]
+name = "f916-collector"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Read-only collector for a verifiable 1f916.ai archive: bounded HTTP capture into immutable evidence packets"
+repository = "https://github.com/OlympusLedgerOrg/1f916-archive"
+publish = false
+
+[[bin]]
+name = "f916-collect"
+path = "src/main.rs"
+
+[dependencies]
+# Blocking HTTP with rustls. No OpenSSL, no async runtime: the collector is a
+# short-lived, strictly sequential, rate-limited process.
+ureq = { version = "2.12", default-features = false, features = [ "tls", "gzip" ] }
+serde = { version = "1", features = [ "derive" ] }
+serde_json = "1"
+# The collector records its own hash of every body it writes, so packet
+# corruption between capture and manifest build is detectable independently of
+# the manifest.
+blake3 = "1"
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+# Evidence collection: prefer a loud abort over unwinding through a partially
+# written packet.
+panic = "abort"
