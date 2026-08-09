@@ -30,7 +30,6 @@ REQUIRE_ANCHORS=0
 OLYMPUS_BIN="${OLYMPUS_BIN:-olympus}"
 COLLECT_BIN="${COLLECT_BIN:-./target/release/f916-collect}"
 MANIFEST_DIR="artifacts/manifests"
-INDEX_DIR="artifacts/indexes"
 DIFF_DIR="artifacts/diffs"
 BUNDLE_DIR="artifacts/bundles"
 
