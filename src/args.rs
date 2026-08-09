@@ -8,7 +8,14 @@
 use std::collections::{HashMap, HashSet};
 
 /// Flags that are presence-only and never consume the following token.
-pub const BOOL_FLAGS: &[&str] = &["dry-run", "initial", "no-sweep", "no-refetch", "help"];
+pub const BOOL_FLAGS: &[&str] = &[
+    "dry-run",
+    "initial",
+    "no-sweep",
+    "no-refetch",
+    "len",
+    "help",
+];
 
 /// Parsed command-line arguments.
 pub struct Args {

@@ -1,0 +1,60 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ci-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets --locked -- -D warnings
+      - run: cargo test --locked
+
+  shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: shellcheck
+        run: shellcheck -x scripts/*.sh
+
+  # Re-verify the published archive on every change: rebuild every manifest root
+  # from the packets, check every version link, and check every anchor against
+  # the pinned identity — including the negative controls. This is the same
+  # script an outside verifier runs, so a change that quietly breaks
+  # verifiability fails here rather than in someone else's terminal.
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+            ${{ runner.temp }}/olympus-cli
+          key: verify-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'scripts/install-olympus-cli.sh') }}
+      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+        with:
+          cosign-release: "v2.6.1"
+      - run: cargo build --release --locked
+      - name: Install the pinned Olympus CLI
+        run: |
+          scripts/install-olympus-cli.sh "$RUNNER_TEMP/olympus-cli"
+          echo "$RUNNER_TEMP/olympus-cli/bin" >> "$GITHUB_PATH"
+      - name: Verify the archive
+        run: scripts/verify-archive.sh

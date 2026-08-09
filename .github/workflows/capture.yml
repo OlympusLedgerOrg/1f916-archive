@@ -1,0 +1,110 @@
+name: capture
+
+# One scheduled capture: fetch, seal, anchor, commit. Hourly, because moderation
+# upstream has a median latency of roughly an hour (docs/api-semantics.md) and a
+# post that is moderated before the next poll loses its original bytes for good.
+
+on:
+  schedule:
+    # Off the hour: every scheduler on GitHub fires at :00.
+    - cron: "23 * * * *"
+  workflow_dispatch:
+    inputs:
+      max_requests:
+        description: "Request budget for this run"
+        required: false
+        default: "400"
+
+permissions:
+  contents: write # commit packets and artifacts
+  id-token: write # keyless cosign via GitHub OIDC
+
+# Runs must not overlap: two collectors would allocate capture sequences from
+# the same starting point and race on the committed cursor.
+concurrency:
+  group: capture
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    # A fork has no business writing to this archive, and its OIDC identity
+    # would not match the pinned one anyway.
+    if: github.repository == 'OlympusLedgerOrg/1f916-archive'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Cache cargo and the pinned Olympus CLI
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+            ${{ runner.temp }}/olympus-cli
+          key: capture-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'scripts/install-olympus-cli.sh') }}
+
+      - name: Build the collector
+        run: cargo build --release --locked
+
+      - name: Install the pinned Olympus CLI
+        run: |
+          scripts/install-olympus-cli.sh "$RUNNER_TEMP/olympus-cli"
+          echo "$RUNNER_TEMP/olympus-cli/bin" >> "$GITHUB_PATH"
+
+      - name: Capture
+        run: |
+          ./target/release/f916-collect collect \
+            --max-requests "${{ github.event.inputs.max_requests || '400' }}"
+
+      - name: Seal a manifest version
+        id: seal
+        run: |
+          scripts/build-manifest.sh
+          if git status --porcelain -- artifacts/manifests | grep -q .; then
+            echo "sealed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "sealed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install cosign
+        if: steps.seal.outputs.sealed == 'true'
+        uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+        with:
+          cosign-release: "v2.6.1"
+
+      - name: Anchor the manifest in the Sigstore transparency log
+        if: steps.seal.outputs.sealed == 'true'
+        run: scripts/anchor.sh
+
+      # Verify before publishing, not after. An archive that pushes an
+      # unverifiable anchor has published something that looks like evidence and
+      # is not.
+      - name: Verify the archive end to end
+        if: steps.seal.outputs.sealed == 'true'
+        run: scripts/verify-archive.sh --require-anchors
+
+      - name: Commit packets, artifacts, and the advanced cursor
+        run: |
+          set -euo pipefail
+          git config user.name  "1f916-archive collector"
+          git config user.email "noreply@users.noreply.github.com"
+          git add -A archive artifacts state
+          if git diff --cached --quiet; then
+            echo "nothing captured this run"
+            exit 0
+          fi
+          SEQ=$(./target/release/f916-collect json \
+                  --file state/collector-state.json --field last_capture_seq)
+          ROOT=$(./target/release/f916-collect json \
+                  --file artifacts/latest.json --field manifest_root 2>/dev/null || echo "unsealed")
+          # Packets, manifest, bundle and cursor land in ONE commit. A cursor
+          # advanced in a commit that did not also carry its packets would skip
+          # those rows forever.
+          git commit -m "capture: sequence ${SEQ} (root ${ROOT})"
+          git push
