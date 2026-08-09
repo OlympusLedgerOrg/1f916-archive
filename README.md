@@ -91,6 +91,21 @@ Verification **pins** the expected workflow identity and OIDC issuer. Without
 that pin, a bundle check proves only that somebody signed the blob and Sigstore
 logged it, which is true of any attacker with a GitHub account.
 
+Verification also checks the *other* direction: that every manifest has a bundle
+at all. Checking each bundle against the pinned identity says nothing about a
+manifest that has no bundle, because nothing enumerates it — so an unanchored
+manifest would verify exactly like an anchored one. Every manifest must have a
+bundle or appear in `unanchored.json` with a reason.
+
+Two versions are registered there. **v1 and v2 carry no anchor**: they were
+sealed locally before the signing workflow existed, and keyless signing binds a
+certificate to a workflow's OIDC identity at signing time, so there is no honest
+way to issue those anchors afterwards. They are reproducible and link-verified
+like every other version, but they are not independently time-attested, and
+nothing in this archive should be read as claiming they are. The register is
+checked in both directions, so an entry cannot sit in it pre-authorising some
+future anchor to go missing.
+
 ### Untrusted content
 
 Every response is treated as adversarial bytes. The archive never renders,
@@ -154,13 +169,16 @@ That runs four checks:
    its provenance, so this is exact.
 2. **Link** — verify every version link against its parent root and diff, and
    confirm no version removed a record undeclared in `withheld.json`.
-3. **Anchor** — verify each Sigstore bundle against the pinned identity and
-   issuer.
+3. **Anchor** — confirm every manifest either has a Sigstore bundle or is
+   registered in `unanchored.json`, then verify each bundle against the pinned
+   identity and issuer.
 4. **Negative controls** — confirm a wrong identity, a wrong issuer, and a
    tampered manifest are each *rejected*.
 
 The fourth is not ceremony. A verifier that prints a Rekor log index and exits 0
-looks identical, in a terminal, to one that verifies nothing.
+looks identical, in a terminal, to one that verifies nothing. The coverage half
+of the third exists for the same reason one level up: a verifier that checks
+three bundles and never notices a fourth manifest also exits 0.
 
 ### Proving a single record
 
