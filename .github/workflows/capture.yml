@@ -89,16 +89,14 @@ jobs:
         if: steps.seal.outputs.sealed == 'true'
         run: scripts/verify-archive.sh --require-anchors
 
+      # The commit is created server-side by GitHub, not pushed from here, so it
+      # carries a verified signature without this workflow holding a signing key.
+      # See scripts/commit-capture.sh for why that trade is the right way round.
       - name: Commit packets, artifacts, and the advanced cursor
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          git config user.name  "1f916-archive collector"
-          git config user.email "noreply@users.noreply.github.com"
-          git add -A archive artifacts state
-          if git diff --cached --quiet; then
-            echo "nothing captured this run"
-            exit 0
-          fi
           SEQ=$(./target/release/f916-collect json \
                   --file state/collector-state.json --field last_capture_seq)
           ROOT=$(./target/release/f916-collect json \
@@ -106,5 +104,4 @@ jobs:
           # Packets, manifest, bundle and cursor land in ONE commit. A cursor
           # advanced in a commit that did not also carry its packets would skip
           # those rows forever.
-          git commit -m "capture: sequence ${SEQ} (root ${ROOT})"
-          git push
+          scripts/commit-capture.sh "capture: sequence ${SEQ} (root ${ROOT})"
