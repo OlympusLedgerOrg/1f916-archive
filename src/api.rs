@@ -59,6 +59,55 @@ pub struct EventsPage {
     pub has_more: bool,
 }
 
+/// How much of one chain a single `/api/attest` response actually covered.
+///
+/// `/api/attest` is paginated: it reports a `page_size`, and its own front-door
+/// documentation says to follow a continuation cursor while the response is
+/// incomplete. The collector fetches it exactly once, so if a chain ever outgrows
+/// one page the archive would store page one and nothing would say so.
+///
+/// Measured 2026-08-10: `page_size` 20000 against 83 identity rows and 13
+/// treasury rows, so every capture so far is complete. This type exists to make
+/// the day that stops being true *loud* rather than silent — the archive's whole
+/// posture is that incompleteness is bounded and stated, and an attestation that
+/// quietly covered a prefix would be neither.
+///
+/// Integers only, like everything else in this module. Coverage is decidable from
+/// the counters alone, so no status string needs to cross into the program.
+#[derive(Debug, Deserialize)]
+pub struct ChainCoverage {
+    pub total_rows: u64,
+    pub verified_through_id: u64,
+}
+
+impl ChainCoverage {
+    /// True when the response accounted for every row it declared.
+    pub fn is_complete(&self) -> bool {
+        self.verified_through_id >= self.total_rows
+    }
+}
+
+/// The coverage counters of an `/api/attest` response.
+#[derive(Debug, Deserialize)]
+pub struct Attest {
+    pub identity_log: ChainCoverage,
+    pub treasury: ChainCoverage,
+}
+
+impl Attest {
+    /// Names of the chains this response left partially covered.
+    pub fn incomplete_chains(&self) -> Vec<&'static str> {
+        let mut out = Vec::new();
+        if !self.identity_log.is_complete() {
+            out.push("identity_log");
+        }
+        if !self.treasury.is_complete() {
+            out.push("treasury");
+        }
+        out
+    }
+}
+
 /// Parse a bounded response body into the numeric view above.
 pub fn parse<T: serde::de::DeserializeOwned>(body: &[u8], what: &str) -> Result<T, String> {
     serde_json::from_slice(body).map_err(|e| format!("parsing {what}: {e}"))
@@ -139,6 +188,76 @@ mod tests {
         assert!(r.is_err(), "a string id must not coerce to a number");
         let msg = r.unwrap_err();
         assert!(msg.contains("parsing changes"), "unexpected message: {msg}");
+    }
+
+    #[test]
+    fn attest_coverage_is_read_from_the_real_captured_shape() {
+        // Field names and values taken from archive/site/captures/000025/attest.json,
+        // trimmed to the counters this type reads. Every other key in the real
+        // response — including the status strings — is deliberately ignored.
+        let body = br#"{
+          "ok": true, "algorithm": "sha256", "page_size": 20000,
+          "identity_log": {"status":"verified","ok":true,"total_rows":83,
+                           "verified_through_id":83,"sealed_entries":69,
+                           "unsealed_entries":14,"sealed_from_id":15},
+          "treasury": {"status":"verified","ok":true,"total_rows":13,
+                       "verified_through_id":13,"sealed_entries":5},
+          "what_this_does_not_prove": "asking us proves nothing"
+        }"#;
+        let a: Attest = parse(body, "attest").unwrap();
+        assert_eq!(a.identity_log.total_rows, 83);
+        assert!(a.identity_log.is_complete());
+        assert!(a.treasury.is_complete());
+        assert!(
+            a.incomplete_chains().is_empty(),
+            "the archive's captures to date are complete; this must not warn"
+        );
+    }
+
+    #[test]
+    fn a_chain_verified_short_of_its_total_is_reported_as_partial() {
+        // What a paged response looks like once a chain outgrows `page_size`.
+        let body = br#"{
+          "identity_log": {"total_rows": 20500, "verified_through_id": 20000},
+          "treasury":     {"total_rows": 13,    "verified_through_id": 13}
+        }"#;
+        let a: Attest = parse(body, "attest").unwrap();
+        assert!(!a.identity_log.is_complete());
+        assert!(a.treasury.is_complete());
+        assert_eq!(a.incomplete_chains(), vec!["identity_log"]);
+    }
+
+    #[test]
+    fn both_chains_can_be_partial_at_once() {
+        let body = br#"{
+          "identity_log": {"total_rows": 9, "verified_through_id": 1},
+          "treasury":     {"total_rows": 9, "verified_through_id": 0}
+        }"#;
+        let a: Attest = parse(body, "attest").unwrap();
+        assert_eq!(a.incomplete_chains(), vec!["identity_log", "treasury"]);
+    }
+
+    #[test]
+    fn attest_carries_no_string_out_of_the_response() {
+        // The same guarantee api.rs makes everywhere else: the coverage types are
+        // integers, so a status string cannot reach the rest of the program even
+        // though the real response is full of prose.
+        assert_eq!(
+            std::mem::size_of::<ChainCoverage>(),
+            2 * std::mem::size_of::<u64>()
+        );
+    }
+
+    #[test]
+    fn attest_missing_a_counter_is_an_error_not_a_silent_pass() {
+        // Defaulting a missing counter to 0 would make `verified_through_id >=
+        // total_rows` trivially true and the guard would pass while checking
+        // nothing.
+        let r: Result<Attest, _> = parse(
+            br#"{"identity_log":{"total_rows":83},"treasury":{"total_rows":13,"verified_through_id":13}}"#,
+            "attest",
+        );
+        assert!(r.is_err(), "a missing counter must not default");
     }
 
     #[test]
