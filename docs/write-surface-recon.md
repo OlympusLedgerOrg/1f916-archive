@@ -2,7 +2,9 @@
 
 > **Status: measured 2026-08-10**, by
 > [run 31404565832](https://github.com/OlympusLedgerOrg/1f916-archive/actions/runs/31404565832)
-> — 51 observations over 27 paths, no transport errors. The API is someone
+> and confirmed identical 74 minutes later by
+> [run 31411026576](https://github.com/OlympusLedgerOrg/1f916-archive/actions/runs/31411026576)
+> — 51 observations over 27 paths each, no transport errors. The API is someone
 > else's and may change without notice.
 >
 > **Headline: the instrument did not work on this host.** `OPTIONS` returned `200`
@@ -149,6 +151,52 @@ paths and distinguishes nothing (see above). `GET` is the entire signal.
 | **`/api/citizens`** | **200** | `application/json` | **citizenship is a real, publicly readable concept** |
 | **`/api/me`** | **401** | `application/json` | **exists and is identity-gated** |
 
+### Response shapes — key paths only, values stripped
+
+Recovered from [run 31411026576](https://github.com/OlympusLedgerOrg/1f916-archive/actions/runs/31411026576)
+(2026-08-10 16:50), a second dispatch whose observations were **identical** to the
+first 74 minutes earlier. Reproducibility is itself a small finding: this is
+steady-state behaviour, not a transient.
+
+| response | body | keys |
+|---|---:|---|
+| `/api/citizens` `200` | 59 730 B | `citizens[].handle`, `citizens[].model`, `citizens[].karma`, `citizens[].votes_cast`, `citizens[].created_at`, `count`, `note`, `page_size`, `returned`, `total`, `now`, `now_utc` |
+| `/api/me` `401` | 126 B | `error`, `now`, `now_utc` |
+| every `404` | 133 B | `error`, **`hint`**, `now`, `now_utc` |
+| `/.well-known/security.txt` | 809 B | *(text/plain — not parsed)* |
+
+Zero non-conforming keys anywhere, so nothing was dropped by the character-class
+filter.
+
+**Two things here matter more than the table above.**
+
+**Every `404` carries a `hint`.** The API documents itself on failure. The body is
+133 bytes on all nineteen `404`s — byte-identical in length, so this is a constant
+message rather than a per-path suggestion, but it is still the API telling a caller
+something about how to use it correctly. Nobody has read it. It is prose, so
+reading it is a human job (§4), and it is now the **cheapest single unread thing in
+this whole investigation** — 133 bytes that the server offers to anyone who asks
+for a wrong path.
+
+**The `401` deliberately withholds that hint.** `/api/me` returns `error`, `now`,
+`now_utc` and *no* `hint` key, while a routing failure gets one. The API is more
+forthcoming about wrong paths than about missing credentials. That asymmetry looks
+deliberate, and it is consistent with the other null result: no
+`WWW-Authenticate` header either. Whatever the enrolment story is, the API is not
+volunteering it to unauthenticated callers.
+
+### What a citizen is, structurally
+
+`handle`, `model`, `karma`, `votes_cast`, `created_at`. So citizenship carries a
+declared model — matching the `author_model` field `api-semantics.md` §2 already
+records on posts — plus reputation and activity counters, and a creation
+timestamp. Citizens are created at a point in time, by some process, and the
+roster is paginated (`count`, `page_size`, `returned`, `total`) and public.
+
+`created_at` is the interesting one for a canary: it means the roster carries the
+same kind of timestamp the archive already knows how to reason about, and a new
+citizen would be visible in it.
+
 Everything else returned `404` on `GET`: `/llms.txt`, `/openapi.json`, `/api`,
 `/api/docs`, `/api/openapi.json`, `/api/register`, `/api/signup`, `/api/join`,
 `/api/apply`, `/api/citizen`, `/api/session`, `/api/auth`, `/api/token`,
@@ -192,6 +240,12 @@ What can be said: the probe did not find an enrolment door, and — given `OPTIO
 is inert here — the only read-only observation that could still find one is a
 `GET` on a correctly guessed name.
 
+**Except that the server may simply tell us.** Every `404` body carries a `hint`
+key. That is the API offering guidance to a caller who asked for the wrong path,
+and it costs nothing to read. It should be read before anyone considers guessing
+further names, because guessing is the expensive, impolite option and this is the
+cheap, intended one.
+
 ### 2. What credential does citizenship issue?
 
 **Unanswered, and not answerable this way.** `/api/me` returned `401` with **no
@@ -199,6 +253,14 @@ is inert here — the only read-only observation that could still find one is a
 the run. A `401` that does not name a scheme tells you a credential is required
 and nothing about its type. Bearer token, cookie, signed assertion: all remain
 open.
+
+The body shape sharpens this rather than resolving it. The `401` returns exactly
+`error`, `now`, `now_utc` — 126 bytes, and **no `hint`**, where every `404` has
+one. The API helps with wrong paths and declines to help with missing
+credentials. Two independent silences pointing the same way (no scheme header, no
+hint) read as a choice rather than an oversight, which is itself worth knowing: the
+credential story is unlikely to be discoverable by poking, and asking is the
+route.
 
 This is the question the whole custody design depends on, so its remaining open
 is the single biggest gap in this recon.
@@ -308,10 +370,12 @@ What was established:
 
 Three ways forward, in the order they should be considered:
 
-1. **Read the front door** (§4). Three `text/plain` documents exist and a person
-   has not yet read them. This is the cheapest remaining step by a wide margin,
-   and it can settle the whole question in either direction — including by
-   answering "no", which ends the matter.
+1. **Read the four unread documents** (§4). Three `text/plain` files — `/`,
+   `/robots.txt`, `/.well-known/security.txt` (809 B, so it has real content) —
+   plus the 133-byte `hint` the server returns on any `404`. A person has read
+   none of them. This is the cheapest remaining step by a wide margin, and it can
+   settle the whole question in either direction, including by answering "no",
+   which ends the matter.
 2. **Ask.** `/.well-known/security.txt` exists, which conventionally carries a
    contact. The archive already identifies itself in every `User-Agent` and calls
    itself "an indefinite guest of someone else's public infrastructure"; asking
