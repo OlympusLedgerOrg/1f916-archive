@@ -94,6 +94,47 @@ pub struct Coverage {
     pub declared: usize,
 }
 
+/// Parse a strict ISO-8601 calendar date, `YYYY-MM-DD`.
+///
+/// Hand-rolled rather than pulling a date crate: this is the only date in the
+/// project, and the rest of the collector already hand-rolls its argument parser
+/// and JSON field reader to keep the dependency surface of an evidence tool
+/// small. Rejects a well-formed but impossible date (`2026-02-30`), since the
+/// point is that the field means something.
+fn parse_iso_date(s: &str) -> Option<(u32, u32, u32)> {
+    let b = s.as_bytes();
+    if b.len() != 10 || b[4] != b'-' || b[7] != b'-' {
+        return None;
+    }
+    if !b
+        .iter()
+        .enumerate()
+        .all(|(i, c)| i == 4 || i == 7 || c.is_ascii_digit())
+    {
+        return None;
+    }
+    let year: u32 = s[0..4].parse().ok()?;
+    let month: u32 = s[5..7].parse().ok()?;
+    let day: u32 = s[8..10].parse().ok()?;
+    if !(1..=12).contains(&month) || day < 1 || day > days_in_month(year, month) {
+        return None;
+    }
+    Some((year, month, day))
+}
+
+/// Days in a Gregorian month, leap years included.
+fn days_in_month(year: u32, month: u32) -> u32 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if year.is_multiple_of(4) && (!year.is_multiple_of(100) || year.is_multiple_of(400)) => {
+            29
+        }
+        2 => 28,
+        _ => 0,
+    }
+}
+
 /// Every manifest in `manifest_dir` must have a bundle in `bundle_dir`, or be
 /// declared in the register at `register_path`.
 ///
@@ -151,6 +192,31 @@ pub fn check_coverage(
     let register = Register::load(register_path)?;
     let mut declared: BTreeMap<u64, &UnanchoredVersion> = BTreeMap::new();
     for entry in &register.unanchored {
+        // An entry is what converts a missing anchor from a silence into a
+        // stated fact, so an entry that states nothing is not coverage. A blank
+        // reason would satisfy the check while explaining nothing to the reader
+        // it exists for.
+        if entry.reason.trim().is_empty() {
+            return Err(format!(
+                "{} declares v{:06} with an empty reason\n\
+                 A declaration is only worth anything if it says why the anchor is\n\
+                 missing; an entry that names no reason records a gap without\n\
+                 explaining it, which is what the register exists to prevent.",
+                register_path.display(),
+                entry.version
+            ));
+        }
+        // Likewise the date: "when was this gap acknowledged" is only answerable
+        // if the field is a real calendar date rather than arbitrary text.
+        if parse_iso_date(&entry.date).is_none() {
+            return Err(format!(
+                "{} declares v{:06} with date {:?}, which is not an ISO-8601\n\
+                 calendar date (YYYY-MM-DD).",
+                register_path.display(),
+                entry.version,
+                entry.date
+            ));
+        }
         if declared.insert(entry.version, entry).is_some() {
             return Err(format!(
                 "{} declares version {} twice",
@@ -286,6 +352,25 @@ mod tests {
                 )
                 .unwrap();
             }
+            self
+        }
+
+        /// A register with per-entry control over `date` and `reason`.
+        fn register_raw(&self, entries: &[(u64, &str, &str)]) -> &Self {
+            let items: Vec<String> = entries
+                .iter()
+                .map(|(v, date, reason)| {
+                    format!(r#"{{"version":{v},"date":"{date}","reason":"{reason}"}}"#)
+                })
+                .collect();
+            fs::write(
+                &self.register,
+                format!(
+                    r#"{{"schema":"{SCHEMA}","unanchored":[{}]}}"#,
+                    items.join(",")
+                ),
+            )
+            .unwrap();
             self
         }
 
@@ -437,6 +522,65 @@ mod tests {
     fn an_empty_manifest_directory_is_an_error() {
         let f = Fixture::new();
         assert!(f.check().unwrap_err().contains("no manifests"));
+    }
+
+    #[test]
+    fn a_declaration_with_a_blank_reason_is_not_coverage() {
+        // The register turns a silence into a stated fact. An entry that states
+        // nothing would satisfy the check while explaining nothing.
+        // `\\t` is the JSON escape, so the file on disk holds a real tab.
+        for blank in ["", "   ", "\\t"] {
+            let f = Fixture::new();
+            f.manifest(1, false);
+            f.register_raw(&[(1, "2026-08-09", blank)]);
+            let err = f.check().unwrap_err();
+            assert!(err.contains("empty reason"), "{blank:?}: {err}");
+            assert!(err.contains("v000001"), "{blank:?}: {err}");
+        }
+    }
+
+    #[test]
+    fn a_declaration_whose_date_is_not_a_date_is_rejected() {
+        for bad in ["x", "2026-8-9", "09-08-2026", "2026-08-09T00:00:00Z", ""] {
+            let f = Fixture::new();
+            f.manifest(1, false);
+            f.register_raw(&[(1, bad, "sealed-before-signing-workflow-existed")]);
+            let err = f.check().unwrap_err();
+            assert!(err.contains("ISO-8601"), "{bad:?}: {err}");
+        }
+    }
+
+    #[test]
+    fn a_declaration_with_an_impossible_date_is_rejected() {
+        // Well-formed but not a real day: the field is meant to answer "when was
+        // this gap acknowledged", which it cannot if it never happened.
+        for bad in ["2026-02-30", "2026-13-01", "2026-00-10", "2026-04-31"] {
+            let f = Fixture::new();
+            f.manifest(1, false);
+            f.register_raw(&[(1, bad, "reason")]);
+            let err = f.check().unwrap_err();
+            assert!(err.contains("ISO-8601"), "{bad:?}: {err}");
+        }
+    }
+
+    #[test]
+    fn a_well_formed_declaration_still_passes() {
+        let f = Fixture::new();
+        f.manifest(1, false);
+        f.register_raw(&[(1, "2024-02-29", "leap day is a real day")]);
+        assert_eq!(f.check().unwrap().declared, 1);
+    }
+
+    #[test]
+    fn iso_dates_accept_real_days_and_reject_impossible_ones() {
+        assert_eq!(parse_iso_date("2026-08-09"), Some((2026, 8, 9)));
+        assert_eq!(parse_iso_date("2024-02-29"), Some((2024, 2, 29)));
+        assert_eq!(parse_iso_date("2000-02-29"), Some((2000, 2, 29)));
+        // 1900 is divisible by 4 but not a leap year: divisible by 100, not 400.
+        assert_eq!(parse_iso_date("1900-02-29"), None);
+        assert_eq!(parse_iso_date("2026-02-29"), None);
+        assert_eq!(parse_iso_date("2026-08-09 "), None);
+        assert_eq!(parse_iso_date("2026/08/09"), None);
     }
 
     #[test]
