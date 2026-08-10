@@ -130,6 +130,41 @@ Separately, events 1–13 carry `prev_hash: null` and `hash: null` — the chain
 begins at event 14/15, where event 15's `prev_hash` is 64 zeroes. Anything before
 that point is unchained by the site's own construction.
 
+## 7. `/api/attest` is paginated, and complete only by a wide margin
+
+Measured 2026-08-10 from the archive's own captured packets, sequences 20–25 —
+counters only, no prose read:
+
+| | `page_size` | `total_rows` | `verified_through_id` | `sealed` | `unsealed` |
+|---|---:|---:|---:|---:|---:|
+| `identity_log` | 20 000 | 83 | 83 | 69 | 14 |
+| `treasury` | 20 000 | 13 | 13 | 5 | — |
+
+Every capture is complete: `verified_through_id` equals `total_rows` on both
+chains, and `ok` is true. **Nothing in the archive is a truncated attestation.**
+
+Two things follow.
+
+**The counters independently corroborate §6.** 14 unsealed entries with
+`sealed_from_id: 15` is the same boundary §6 derived from `/api/events` — that the
+chain begins at event 14/15 and everything before it is unchained by the site's
+own construction. Two endpoints, one conclusion, arrived at separately.
+
+**The margin is what makes this safe, and margins close.** `page_size` is 20 000
+against 83 rows growing at roughly 1.6 per hour: about 500 days of headroom. The
+collector fetches `/api/attest` exactly once and has no continuation handling, so
+on the day a chain outgrows one page it would store page one and the archive would
+have an unstated incompleteness — the single thing this project is not allowed to
+have.
+
+So the collector now reads the two coverage counters after every capture and warns
+if either chain was covered only in part (`src/api.rs`, `ChainCoverage`). The
+check is integers only, like everything else in that module; coverage is decidable
+from the counters, so no status string crosses into the program. Pagination itself
+is deliberately *not* implemented: it would be speculative work against a shape
+nobody has observed, and a loud warning is worth more today than an untested code
+path for a response that has never arrived.
+
 ---
 
 ## What the collector does about all this
@@ -143,6 +178,7 @@ that point is unchained by the site's own construction.
 | moderated posts invisible (§5) | integer id sweep: probe known gaps, then probe forward past the highest known id until a run of 404s |
 | deletions untombstoned (§5) | a 404 below the highest-known-present id is recorded as confirmed absence; above it, never cached |
 | chain spans kinds (§6) | capture `/api/events?since=0` unfiltered |
+| attest pages (§7) | read the coverage counters after each capture; warn loudly if either chain was only partly covered, rather than storing a prefix in silence |
 
 None of this makes the archive complete. It makes the *incompleteness* bounded
 and stated: what the archive holds is what it managed to fetch before someone

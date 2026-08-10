@@ -155,7 +155,35 @@ pub fn run(
     for (path, name, expect) in SITE_ENDPOINTS {
         let url = format!("{}{}", plan.base, path);
         match fetch_and_store(client, &mut run, Shard::Site, name_of(name), &url, *expect) {
-            Ok(()) => report.site_packets += 1,
+            Ok(f) => {
+                report.site_packets += 1;
+                // `/api/attest` is paginated and fetched exactly once. Storing a
+                // prefix of it is not wrong — the packet is what was served — but
+                // an attestation that silently covered part of a chain would be an
+                // unstated incompleteness, which is the one thing this archive is
+                // not allowed to have. Check the counters and say so out loud.
+                if *path == "/api/attest" {
+                    match api::parse::<api::Attest>(&f.body, "attest") {
+                        Ok(a) => {
+                            let partial = a.incomplete_chains();
+                            if !partial.is_empty() {
+                                report.warnings.push(format!(
+                                    "/api/attest covered only part of {}: the endpoint pages and \
+                                     the collector fetches one page, so this packet is a prefix \
+                                     of the attestation, not the whole of it. Follow the \
+                                     continuation cursor before this root is relied on.",
+                                    partial.join(" and ")
+                                ));
+                            }
+                        }
+                        // A shape change here is itself worth hearing about: it
+                        // means the coverage check has stopped checking anything.
+                        Err(e) => report
+                            .warnings
+                            .push(format!("/api/attest coverage unreadable: {e}")),
+                    }
+                }
+            }
             Err(e) => report.warnings.push(format!("{path}: {e}")),
         }
     }
@@ -168,7 +196,7 @@ pub fn run(
         &treasury_url,
         Expect::Json,
     ) {
-        Ok(()) => report.site_packets += 1,
+        Ok(_) => report.site_packets += 1,
         Err(e) => report.warnings.push(format!("/treasury: {e}")),
     }
 
@@ -426,6 +454,8 @@ fn capture_post(
     }
 }
 
+/// Fetch, store, and hand the response back so a caller can inspect what it just
+/// wrote. The packet is on disk either way; inspection never gates storage.
 fn fetch_and_store(
     client: &mut Client,
     run: &mut CaptureRun,
@@ -433,9 +463,10 @@ fn fetch_and_store(
     name: PacketName,
     url: &str,
     expect: Expect,
-) -> Result<(), String> {
+) -> Result<Fetched, String> {
     let f = client.get(url, expect).map_err(|e| e.to_string())?;
-    store(run, shard, name, &f)
+    store(run, shard, name, &f)?;
+    Ok(f)
 }
 
 fn store(run: &mut CaptureRun, shard: Shard, name: PacketName, f: &Fetched) -> Result<(), String> {
