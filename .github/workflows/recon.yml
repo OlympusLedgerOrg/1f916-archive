@@ -43,6 +43,20 @@ jobs:
       # for them. The questions in docs/write-surface-recon.md that need prose
       # (§4, whether automated participation is permitted) are answered by a
       # person reading the site directly, and attributed to that person.
+      # Also to stdout, not only to the job summary. A step summary is readable
+      # on the job page and nowhere else: it is absent from the run log, and the
+      # check-run output for an Actions job comes back empty. That made the first
+      # run's findings unreachable to anything but a human with a browser, which
+      # is a poor property for a measurement that is meant to be transcribed into
+      # docs/write-surface-recon.md.
+      #
+      # Printing it is safe for the same reason it is safe to commit: every field
+      # in structure.json is validated against a bounded pattern and dropped
+      # rather than reproduced if it does not conform. No response prose reaches
+      # it. The raw bodies in prose/ are NOT printed and never should be.
+      - name: Print the structural report to the log
+        run: jq . "$RUNNER_TEMP/recon-out/structure.json"
+
       - name: Summarise
         run: |
           set -euo pipefail
@@ -59,8 +73,13 @@ jobs:
             echo
             echo '| method | path | status | media type | allow | cors | auth |'
             echo '|---|---|---:|---|---|---|---|'
+            # `has("status")` matters: a transport failure is recorded as
+            # {path, method, transport_error} with no status field, and
+            # `null != 404` is true in jq. Without the guard a failed request
+            # renders as a blank-status table row and reads like a real
+            # observation — the opposite of what this report is for.
             jq -r '.observations[]
-                   | select(.status != 404 and .status != 0)
+                   | select(has("status") and .status != 404 and .status != 0)
                    | "| \(.method) | `\(.path)` | \(.status) "
                      + "| \(if .media_type then .media_type elif .media_type_conforms == false then "(non-conforming)" else "-" end) "
                      + "| \((.allow // []) | join(", ") | if . == "" then "-" else . end) "
