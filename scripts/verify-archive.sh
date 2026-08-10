@@ -119,6 +119,16 @@ if [[ ${#BUNDLES[@]} -eq 0 ]]; then
   exit 0
 fi
 
+# Coverage, before cosign is even required: the loop below iterates bundles, so
+# a manifest with no bundle is never examined by it. Without this check a missing
+# anchor is indistinguishable from a present one — the same failure the negative
+# controls exist to prevent, one level up.
+COVERAGE=$("$COLLECT_BIN" anchors \
+  --manifests "$MANIFEST_DIR" \
+  --bundles "$BUNDLE_DIR" \
+  --unanchored unanchored.json) || fail "anchor coverage check failed"
+echo "   ok: $COVERAGE"
+
 command -v cosign >/dev/null || fail "bundles exist but cosign is not on PATH"
 
 verify_bundle() {  # bundle manifest identity issuer

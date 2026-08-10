@@ -16,6 +16,7 @@
 //! the pinned Olympus `olympus` CLI plus `cosign`, driven by `scripts/` and the
 //! scheduled workflow.
 
+mod anchored;
 mod api;
 mod args;
 mod collect;
@@ -42,6 +43,7 @@ COMMANDS:
     state     Print committed collector state and exit
     json      Print one top-level field of a JSON file (glue for scripts/)
     removals  Check a manifest diff's removals against the withholding register
+    anchors   Check every manifest has a bundle or a registered reason it has none
     help      Show this help
 
 JSON OPTIONS:
@@ -52,6 +54,11 @@ JSON OPTIONS:
 REMOVALS OPTIONS:
     --diff <path>             Manifest diff artifact
     --withheld <path>         Withholding register  (default withheld.json)
+
+ANCHORS OPTIONS:
+    --manifests <dir>         Manifest directory    (default artifacts/manifests)
+    --bundles <dir>           Bundle directory      (default artifacts/bundles)
+    --unanchored <path>       Anchor-gap register   (default unanchored.json)
 
 COLLECT OPTIONS:
     --root <dir>              Archive packet root      (default archive)
@@ -84,6 +91,7 @@ fn main() -> ExitCode {
         "state" => cmd_state(&args),
         "json" => cmd_json(&args),
         "removals" => cmd_removals(&args),
+        "anchors" => cmd_anchors(&args),
         "help" | "-h" | "--help" => {
             print!("{USAGE}");
             Ok(())
@@ -126,6 +134,33 @@ fn cmd_removals(a: &Args) -> Result<(), String> {
     match n {
         0 => println!("no removals: the packet set only grew"),
         n => println!("{n} declared withholding(s), all registered in {register}"),
+    }
+    Ok(())
+}
+
+/// Fail unless every manifest is anchored or its missing anchor is registered.
+///
+/// The bundle-driven loop in `verify-archive.sh` checks each bundle against the
+/// pinned identity, but nothing enumerates manifests — so a manifest with no
+/// bundle is never examined. This is the other direction.
+fn cmd_anchors(a: &Args) -> Result<(), String> {
+    let manifests = a.get_or("manifests", "artifacts/manifests");
+    let bundles = a.get_or("bundles", "artifacts/bundles");
+    let register = a.get_or("unanchored", "unanchored.json");
+    let coverage = anchored::check_coverage(
+        Path::new(manifests),
+        Path::new(bundles),
+        Path::new(register),
+    )?;
+    match coverage.declared {
+        0 => println!(
+            "{} manifest(s) anchored; none unanchored",
+            coverage.anchored
+        ),
+        n => println!(
+            "{} manifest(s) anchored; {n} unanchored and declared in {register}",
+            coverage.anchored
+        ),
     }
     Ok(())
 }
