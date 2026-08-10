@@ -50,14 +50,21 @@ jobs:
           {
             echo '## Write-surface recon'
             echo
-            echo 'Anything that answered — `404`s omitted:'
+            echo 'Anything that answered — `404`s omitted.'
             echo
-            echo '| method | path | status | media type | allow | auth |'
-            echo '|---|---|---:|---|---|---|'
+            echo '`allow` is the resource'"'"'s own method set (RFC 9110 §10.2.1) and is the'
+            echo 'only column that answers the write-surface question. `cors` is a browser'
+            echo 'policy, often a blanket list emitted on every route — it is shown for'
+            echo 'context and must not be read as evidence that a method exists.'
+            echo
+            echo '| method | path | status | media type | allow | cors | auth |'
+            echo '|---|---|---:|---|---|---|---|'
             jq -r '.observations[]
                    | select(.status != 404 and .status != 0)
-                   | "| \(.method) | `\(.path)` | \(.status) | \(.media_type // "-") "
+                   | "| \(.method) | `\(.path)` | \(.status) "
+                     + "| \(if .media_type then .media_type elif .media_type_conforms == false then "(non-conforming)" else "-" end) "
                      + "| \((.allow // []) | join(", ") | if . == "" then "-" else . end) "
+                     + "| \((.cors_allow_methods // []) | join(", ") | if . == "" then "-" else . end) "
                      + "| \(.auth_scheme // "-") |"' "$OUT/structure.json"
             echo
             echo '<details><summary>Full structural report (commit this into docs/ once read)</summary>'

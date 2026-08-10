@@ -46,6 +46,17 @@ an unauthenticated `GET`, it distinguishes the cases that matter:
 | `405` with an `Allow` listing `POST` | the endpoint exists and takes writes |
 | `401`/`403` with a `WWW-Authenticate` scheme | exists, and names the credential type it wants |
 | `200` on `GET` | a readable endpoint; its key shape says what it models |
+| `Access-Control-Allow-Methods` listing `POST` | **nothing about the write surface** — see below |
+
+Only `Allow` answers the question. `Allow` is the origin server stating which
+methods *this resource* implements (RFC 9110 §10.2.1).
+`Access-Control-Allow-Methods` is a CORS policy addressed to browsers, and
+middleware routinely emits a blanket `GET, POST, PUT, DELETE, OPTIONS` on every
+route regardless of what the route actually does. The probe records the two in
+separate fields (`allow`, `cors_allow_methods`) and the write-surface conclusion
+is drawn from `allow` alone. Conflating them would manufacture a write surface on
+every path probed — a false positive in the one direction that would matter, since
+it is the direction that argues for acquiring a credential.
 
 **Where it stops.** A `404` is not proof of absence: an endpoint can be
 undocumented, differently named, versioned under a prefix this probe does not
@@ -60,9 +71,11 @@ all, by a deliberate first write under the design this recon informs.
 The probe writes two things, and the separation is the reason the recon can be
 written up honestly:
 
-- `structure.json` — status codes, media types, `Allow` tokens, auth scheme
-  tokens, body lengths, and JSON **key paths with every value stripped**.
-  Machine-readable, safe to quote and commit.
+- `structure.json` — status codes, media types, `Allow` tokens, CORS method
+  policy, auth scheme tokens, body lengths, and JSON **key paths with every value
+  stripped**. Machine-readable, safe to quote and commit: every field lifted out
+  of a response is validated against a bounded pattern and dropped rather than
+  reproduced if it does not conform.
 - `prose/*.body` — raw bodies, verbatim, upstream-controlled.
 
 `README.md` forbids feeding captured content to a language model. That rule binds

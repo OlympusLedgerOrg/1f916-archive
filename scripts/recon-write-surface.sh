@@ -18,9 +18,13 @@
 # TWO OUTPUTS, SEPARATED ON PURPOSE:
 #
 #   <out>/structure.json   Structural observations only: status codes, media
-#                          types, Allow tokens, auth-challenge scheme tokens,
-#                          body lengths, and JSON key paths with every value
-#                          stripped. Safe to read, quote, diff, and commit.
+#                          types, Allow tokens, CORS method policy (kept
+#                          separate — it is not an Allow header), auth-challenge
+#                          scheme tokens, body lengths, and JSON key paths with
+#                          every value stripped. Every one of those is validated
+#                          against a bounded pattern and dropped rather than
+#                          reproduced if it does not conform, so this file stays
+#                          safe to read, quote, diff, and commit.
 #
 #   <out>/prose/*.body     Raw response bodies, verbatim. Upstream-controlled
 #                          bytes. FOR HUMAN EYES ONLY — never summarise, quote
@@ -123,10 +127,31 @@ probe() {
   body="$OUT/prose/${s}.${method}.body"
   url="${BASE}${path}"
 
+  # `-q` must be the *first* argument: it is what stops curl reading a default
+  # config, and a `~/.curlrc` carrying `-X POST` or `-d` would silently turn this
+  # script's central guarantee into a false statement. `-X` is then set
+  # explicitly on both branches so the method on the wire is the method in the
+  # case label rather than a curl default.
+  #
+  # `--max-filesize` bounds the transfer itself instead of trusting the peer to
+  # stop, which is the same protection `src/http.rs` gives the collector. Since
+  # curl 8.4.0 it also aborts a chunked response whose length was never declared;
+  # under an older curl it only catches a declared Content-Length, and the
+  # `--max-time` ceiling is the remaining backstop.
+  local capped=false
   case "$method" in
-    GET) curl -sS --max-time "$MAX_TIME" -A "$UA" -D "$hdr" -o "$body" "$url" || curl_status=$? ;;
-    OPTIONS) curl -sS --max-time "$MAX_TIME" -A "$UA" -X OPTIONS -D "$hdr" -o "$body" "$url" || curl_status=$? ;;
+    GET) curl -q -sS --max-time "$MAX_TIME" --max-filesize "$MAX_BYTES" -A "$UA" -X GET -D "$hdr" -o "$body" "$url" || curl_status=$? ;;
+    OPTIONS) curl -q -sS --max-time "$MAX_TIME" --max-filesize "$MAX_BYTES" -A "$UA" -X OPTIONS -D "$hdr" -o "$body" "$url" || curl_status=$? ;;
   esac
+
+  # 63 is CURLE_FILESIZE_EXCEEDED. The response envelope arrived, so status and
+  # headers are real observations; only the body is a prefix. That is a finding,
+  # not a transport failure — but the byte count on disk is then the cap rather
+  # than a measurement, so it is reported as unknown rather than as a length.
+  if [ "$curl_status" -eq 63 ]; then
+    capped=true
+    curl_status=0
+  fi
 
   if [ "$curl_status" -ne 0 ]; then
     jq -nc --arg p "$path" --arg m "$method" --argjson e "$curl_status" \
@@ -134,47 +159,64 @@ probe() {
     return 0
   fi
 
-  local norm status media allow auth len oversized shape_json
+  local norm status media media_ok allow cors auth len shape_json
   norm="${hdr}.norm"
   normalise_headers "$hdr" >"$norm"
 
   status="$(awk 'toupper($0) ~ /^HTTP\// { c = $2 } END { print c + 0 }' "$hdr")"
 
-  # Header *values* are upstream text too. Only these three are lifted out, and
-  # each is reduced to tokens: a media type without parameters, a method set, and
-  # an auth scheme without its realm. Every extractor ends `|| true` because a
-  # header that is simply absent is an ordinary result, not a failure — and
-  # `pipefail` would otherwise turn each empty grep into an aborted run.
+  # Header *values* are upstream text too. Only these four are lifted out, and
+  # each is reduced to bounded tokens: a media type, two method sets, and an auth
+  # scheme without its realm. Every extractor ends `|| true` because a header
+  # that is simply absent is an ordinary result, not a failure — and `pipefail`
+  # would otherwise turn each empty grep into an aborted run.
+  #
+  # The media type gets the same treatment as a JSON key name: validated against
+  # a conservative pattern, and dropped rather than reproduced if it does not
+  # conform. `structure.json` is documented as safe to quote and gets rendered
+  # into a Markdown table by the workflow, and neither claim survives copying an
+  # arbitrary upstream string into it. `media_type_conforms: false` records that
+  # something was served and rejected, which is itself a finding.
   media="$(header_first content-type "$norm" | sed 's/;.*//' | tr '[:upper:]' '[:lower:]' | tr -d ' ' || true)"
-  allow="$(
-    {
-      header_all allow "$norm"
-      header_all access-control-allow-methods "$norm"
-    } | tr ',' '\n' | tr -d ' ' | tr '[:lower:]' '[:upper:]' | grep -E '^[A-Z]{3,7}$' | sort -u | paste -sd, - || true
-  )"
+  media_ok=true
+  if [ -n "$media" ] && ! printf '%s' "$media" | grep -qE '^[a-z0-9][a-z0-9.+-]{0,62}/[a-z0-9][a-z0-9.+-]{0,62}$'; then
+    media_ok=false
+    media=""
+  fi
+
+  # `Allow` and `Access-Control-Allow-Methods` are kept apart, because they are
+  # different claims and only one of them answers this recon's question. `Allow`
+  # (RFC 9110 §10.2.1) is the origin server stating which methods *this resource*
+  # implements. A CORS method list is a browser policy, routinely emitted as a
+  # blanket `GET, POST, PUT, DELETE, OPTIONS` by middleware on every route
+  # regardless of what the route does. Merging them would let one careless
+  # middleware default report a write surface on every path probed here — a
+  # false positive in exactly the direction that would matter most.
+  allow="$(header_all allow "$norm" | tr ',' '\n' | tr -d ' ' | tr '[:lower:]' '[:upper:]' | grep -E '^[A-Z]{3,7}$' | sort -u | paste -sd, - || true)"
+  cors="$(header_all access-control-allow-methods "$norm" | tr ',' '\n' | tr -d ' ' | tr '[:lower:]' '[:upper:]' | grep -E '^[A-Z]{3,7}$' | sort -u | paste -sd, - || true)"
   auth="$(header_first www-authenticate "$norm" | grep -Eo '^[A-Za-z]{1,20}' || true)"
 
   len="$(wc -c <"$body" | tr -d ' ')"
-  oversized=false
-  if [ "$len" -gt "$MAX_BYTES" ]; then
-    oversized=true
-    head -c "$MAX_BYTES" "$body" >"$body.capped" && mv "$body.capped" "$body"
-  fi
 
   shape_json='null'
-  if [ "$media" = "application/json" ] && [ "$len" -gt 0 ] && [ "$oversized" = false ]; then
+  if [ "$media" = "application/json" ] && [ "$len" -gt 0 ] && [ "$capped" = false ]; then
     shape_json="$(shape "$body")"
   fi
 
   jq -nc \
     --arg p "$path" --arg m "$method" --argjson st "${status:-0}" \
-    --arg media "$media" --arg allow "$allow" --arg auth "$auth" \
-    --argjson len "$len" --argjson over "$oversized" --argjson shape "$shape_json" \
+    --arg media "$media" --argjson media_ok "$media_ok" \
+    --arg allow "$allow" --arg cors "$cors" --arg auth "$auth" \
+    --argjson len "$len" --argjson capped "$capped" --argjson shape "$shape_json" \
     '{path:$p, method:$m, status:$st,
       media_type: ($media | if . == "" then null else . end),
+      media_type_conforms: $media_ok,
       allow: ($allow | if . == "" then null else split(",") end),
+      cors_allow_methods: ($cors | if . == "" then null else split(",") end),
       auth_scheme: ($auth | if . == "" then null else . end),
-      body_bytes:$len, oversized:$over, shape:$shape}' \
+      body_bytes: (if $capped then null else $len end),
+      body_capped: $capped,
+      shape: $shape}' \
     >>"$OUT/observations.ndjson"
 }
 
