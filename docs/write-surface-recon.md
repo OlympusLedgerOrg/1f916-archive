@@ -1,10 +1,15 @@
 # Write-surface reconnaissance: method and open questions
 
-> **Status: not yet measured.** This document is the instrument and the question
-> list, not the findings. Every results table below is empty on purpose. Nothing
-> here should be cited as a fact about 1f916 until a dated run has filled them
-> in, the same way [`api-semantics.md`](api-semantics.md) was filled in on
-> 2026-08-09.
+> **Status: measured 2026-08-10**, by
+> [run 31404565832](https://github.com/OlympusLedgerOrg/1f916-archive/actions/runs/31404565832)
+> — 51 observations over 27 paths, no transport errors. The API is someone
+> else's and may change without notice.
+>
+> **Headline: the instrument did not work on this host.** `OPTIONS` returns `200`
+> with an identical blanket CORS list for *every* path, existent or not, and no
+> endpoint returned an `Allow` header at all. The write surface is therefore **not
+> mappable by any read-only method**, and most questions below close as
+> unanswered rather than answered. That is a real result, and it changes the plan.
 
 **Method:** read-only. `GET` and `OPTIONS` only — both `safe` per RFC 9110
 §9.2.1, both creating no upstream state. Run by
@@ -58,6 +63,30 @@ is drawn from `allow` alone. Conflating them would manufacture a write surface o
 every path probed — a false positive in the one direction that would matter, since
 it is the direction that argues for acquiring a credential.
 
+### What actually happened: the `Allow` column came back empty everywhere
+
+Not one of the 27 probed paths returned an `Allow` header — not the live ones,
+not the missing ones. Every `OPTIONS` returned `200` with
+`Access-Control-Allow-Methods: GET, OPTIONS, POST`, identically, including for
+paths that plainly do not exist: `/api/apply`, `/api/join`, `/api/vote`,
+`/api/flag`, `/api/docs`. A CORS preflight handler is answering ahead of routing,
+so `OPTIONS` carries no per-resource information whatsoever.
+
+Two consequences, and the second is the one that matters.
+
+**The table above collapses.** Its second and fifth rows are the only ones that
+could have distinguished "takes writes" from "does not exist", and neither ever
+fired. On this host `OPTIONS` cannot tell those apart — it answers `200 … POST`
+for both.
+
+**The CORS separation is what stopped this becoming a fabricated result.** Had
+the probe merged `Allow` with `Access-Control-Allow-Methods`, as it did before
+review, this report would now state that `POST` is available on all 27 paths,
+including `/api/apply` and `/api/flag`, which do not exist. It would have
+manufactured a complete write surface out of one middleware default, and every
+downstream decision — including "acquire a credential" — would have rested on it.
+The distinction was worth drawing.
+
 **Where it stops.** A `404` is not proof of absence: an endpoint can be
 undocumented, differently named, versioned under a prefix this probe does not
 guess, or gated behind a session the probe does not hold. And no safe method can
@@ -94,48 +123,117 @@ it lists the fields of a changes row.
 
 ---
 
+## Everything that answered
+
+`OPTIONS` is omitted below: it returned `200` with the same CORS list on all 27
+paths and distinguishes nothing (see above). `GET` is the entire signal.
+
+| path | `GET` | media type | reading |
+|---|---:|---|---|
+| `/api/attest` | 200 | `application/json` | control — live, as expected |
+| `/api/official` | 200 | `application/json` | control — live |
+| `/api/docket` | 200 | `application/json` | control — live |
+| `/` | 200 | `text/plain` | front door, addressed to agents |
+| `/robots.txt` | 200 | `text/plain` | present |
+| `/.well-known/security.txt` | 200 | `text/plain` | present |
+| **`/api/citizens`** | **200** | `application/json` | **citizenship is a real, publicly readable concept** |
+| **`/api/me`** | **401** | `application/json` | **exists and is identity-gated** |
+
+Everything else returned `404` on `GET`: `/llms.txt`, `/openapi.json`, `/api`,
+`/api/docs`, `/api/openapi.json`, `/api/register`, `/api/signup`, `/api/join`,
+`/api/apply`, `/api/citizen`, `/api/session`, `/api/auth`, `/api/token`,
+`/api/post`, `/api/posts`, `/api/comment`, `/api/comments`, `/api/vote`,
+`/api/flag`.
+
+(`/api/post` returning `404` is expected and reassuring: the collector reads
+`/api/post/{id}`, so the collection-level path having no handler is consistent
+with the read surface already measured in `api-semantics.md`.)
+
 ## The questions
 
 ### 1. Does an enrolment path exist, and what does it demand?
 
-| path | `GET` | `OPTIONS` `Allow` | challenge | shape |
-|---|---|---|---|---|
-| *(pending)* | | | | |
+**Not found, and not disproved.** All eight guessed enrolment names — `register`,
+`signup`, `join`, `apply`, `citizen`, `session`, `auth`, `token` — returned `404`
+on `GET`, and `OPTIONS` was uninformative on all of them. No API documentation
+exists at any guessed location either (`/openapi.json`, `/api`, `/api/docs`,
+`/api/openapi.json` all `404`), so there is no machine-readable index to correct
+the guesses from.
+
+Two positive findings survive, and they are the useful part:
+
+- **`/api/citizens` returns `200` JSON.** Citizenship is not a metaphor in the
+  posts; it is a modelled entity with a publicly readable roster.
+- **`/api/me` returns `401` JSON.** There is a per-identity endpoint, and it
+  distinguishes an authenticated caller from an anonymous one.
+
+Together those say enrolment almost certainly exists. The probe simply did not
+find its door, and — given `OPTIONS` is inert here — no read-only probe of
+guessed paths ever will, except by guessing the right name.
 
 ### 2. What credential does citizenship issue?
 
-A bearer token, a signed assertion, a session cookie, something else. This
-decides the whole custody design, so it is the question the recon most needs to
-answer structurally rather than by assumption.
+**Unanswered, and not answerable this way.** `/api/me` returned `401` with **no
+`WWW-Authenticate` header at all** — the `auth` column is empty for every row in
+the run. A `401` that does not name a scheme tells you a credential is required
+and nothing about its type. Bearer token, cookie, signed assertion: all remain
+open.
+
+This is the question the whole custody design depends on, so its remaining open
+is the single biggest gap in this recon.
 
 ### 3. What is the post-creation endpoint?
 
-Existence and method set only. The accepted body shape is out of scope for a
-read-only pass (see *Where it stops*).
+**Unanswered, and not answerable this way.** `/api/post` and `/api/posts` both
+`404` on `GET`, and `OPTIONS` claims `POST` on them exactly as loudly as it does
+on `/api/flag` and `/api/apply`. There is no read-only observation on this host
+that separates "a write endpoint I did not find" from "no write endpoint".
 
 ### 4. Is automated participation actually permitted?
 
-`/`, `/robots.txt`, `/llms.txt`, `/.well-known/security.txt`. The archive reads
-under a courteous-guest posture it has kept deliberately; writing is a larger
-imposition and needs an affirmative answer, not the absence of a prohibition.
-**This is a human reading of `prose/`, not a structural finding.** If the answer
-is no, or unclear, the canary does not happen — that outcome is a complete and
-acceptable result of this recon.
+**Still open, and now the load-bearing question.** The recon located the
+documents but cannot read them: three exist and one does not.
+
+| document | status |
+|---|---|
+| `/` | `200`, `text/plain` |
+| `/robots.txt` | `200`, `text/plain` |
+| `/.well-known/security.txt` | `200`, `text/plain` |
+| `/llms.txt` | `404` — absent |
+
+**This requires a human reading, and the report will name who did it.** The rule
+in `README.md` forbids feeding captured content to a language model, so the
+assistant that wrote this document has not read any of those three files and must
+not. That the front door is `text/plain` and the site is populated by agents makes
+it more likely, not less, that its contents are addressed to an LLM — which is
+exactly the case the rule exists for.
+
+With §1–§3 closed as unanswerable, this is now the question that decides whether
+the canary proceeds at all. If the answer is no or unclear, the canary does not
+happen, and that is a complete and acceptable result of this recon.
 
 ### 5. What rate and quota apply to writes?
 
-The collector already honours `429` and `Retry-After` on reads. A canary should
-be rare by design — single digits, ever — but the published limits should be
-recorded rather than guessed at.
+**Nothing observed.** No `429` and no `Retry-After` across 51 requests at
+600 ms spacing, so the read-side limits were never approached. Write limits are
+undocumented at any endpoint this probe could reach, and would in any case be
+published in the same prose that §4 depends on.
 
 ### 6. Does a citizen's own post flow through the ordinary read path?
 
-The canary is worthless if capturing it needs a special case. It has to be
-discovered by the unmodified collector, through `/api/changes` and
-`/api/post/{id}`, exactly like any other post. `api-semantics.md` §5 says posts
-with a non-null `mod_state` never appear in the feed; nothing yet says whether an
-ordinary post by an ordinary citizen behaves normally, because the archive has
-never had one to watch.
+**Unanswerable until a citizen post exists**, as expected — this one was never
+going to fall to a probe. The canary is worthless if capturing it needs a special
+case: it has to be discovered by the unmodified collector, through
+`/api/changes` and `/api/post/{id}`, exactly like any other post.
+`api-semantics.md` §5 says posts with a non-null `mod_state` never appear in the
+feed; nothing yet says whether an ordinary post by an ordinary citizen behaves
+normally, because the archive has never had one to watch.
+
+One adjacent finding is worth carrying forward: `/api/citizens` is readable
+without credentials. If a canary ever exists, its author becomes a row in a public
+roster — the archive stops being only an observer of that endpoint and becomes an
+entry in it. That is a posture change, not a technical obstacle, but it should be
+a decision rather than a side effect.
 
 ### 7. **Does upstream serve back the exact bytes it was given?**
 
@@ -160,8 +258,48 @@ Two designs follow, and the recon picks between them:
   upstream no earlier than the anchor that predates it*, and no rewrite can
   retroactively fabricate the ordering.
 
-Absent evidence of exact-byte round-tripping, the nonce design is the honest
-default — it degrades to a true statement instead of a false negative.
+**Measured: no evidence either way, and none obtainable read-only.** Round-tripping
+can only be tested by submitting bytes and reading them back, which is a write.
+So the nonce design stands as the default — not as a preference, but because it is
+the only one of the two that can be adopted without first assuming the answer.
+
+---
+
+## Where this leaves the canary
+
+Of seven questions, the recon closed **none** affirmatively, and that is the
+finding rather than a failure of the run. The probe worked exactly as designed;
+the host simply does not expose the signal the design depended on.
+
+What was established:
+
+- Citizenship is real and modelled (`/api/citizens`, `200` JSON), and identity is
+  enforced somewhere (`/api/me`, `401`).
+- The enrolment and write endpoints are not at any of the 14 names guessed, and
+  no machine-readable API description exists to correct the guesses from.
+- `OPTIONS` is inert on this host, so **no further read-only probing will help.**
+  Widening the path list would only produce more `200 … POST` answers that mean
+  nothing. A second recon pass of the same kind is not worth running.
+
+Three ways forward, in the order they should be considered:
+
+1. **Read the front door** (§4). Three `text/plain` documents exist and a person
+   has not yet read them. This is the cheapest remaining step by a wide margin,
+   and it can settle the whole question in either direction — including by
+   answering "no", which ends the matter.
+2. **Ask.** `/.well-known/security.txt` exists, which conventionally carries a
+   contact. The archive already identifies itself in every `User-Agent` and calls
+   itself "an indefinite guest of someone else's public infrastructure"; asking
+   the operator whether an archival canary is welcome is more in keeping with that
+   posture than probing for an unlocked door.
+3. **Only then**, a deliberate first write under a design this recon can no longer
+   inform as much as hoped.
+
+What should **not** happen next is escalating to unauthenticated `POST` attempts
+to discover the write surface. That would be probing someone else's service for
+undocumented mutation endpoints without asking — it abandons the guest posture,
+and it falsifies `api-semantics.md`'s no-writes claim to answer a question that
+§4 might answer for free.
 
 ---
 
@@ -195,9 +333,11 @@ only, `contents: read`, no `id-token`, and it commits nothing — or run it loca
 
 ```bash
 scripts/recon-write-surface.sh recon-out
+# GET only: OPTIONS answers 200 with the same CORS list on every path here and
+# distinguishes nothing, so including it just pads the output with noise.
 jq -r '.observations[]
-       | select(.status != 404)
-       | [.method, .path, .status, (.allow // [] | join("+")), (.auth_scheme // "-")]
+       | select(.method == "GET" and .status != 404)
+       | [.path, .status, (.media_type // "-"), (.allow // [] | join("+") | if . == "" then "-" else . end), (.auth_scheme // "-")]
        | @tsv' recon-out/structure.json
 ```
 
