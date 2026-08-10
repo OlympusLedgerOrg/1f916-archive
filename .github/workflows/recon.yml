@@ -73,8 +73,13 @@ jobs:
             echo
             echo '| method | path | status | media type | allow | cors | auth |'
             echo '|---|---|---:|---|---|---|---|'
+            # `has("status")` matters: a transport failure is recorded as
+            # {path, method, transport_error} with no status field, and
+            # `null != 404` is true in jq. Without the guard a failed request
+            # renders as a blank-status table row and reads like a real
+            # observation — the opposite of what this report is for.
             jq -r '.observations[]
-                   | select(.status != 404 and .status != 0)
+                   | select(has("status") and .status != 404 and .status != 0)
                    | "| \(.method) | `\(.path)` | \(.status) "
                      + "| \(if .media_type then .media_type elif .media_type_conforms == false then "(non-conforming)" else "-" end) "
                      + "| \((.allow // []) | join(", ") | if . == "" then "-" else . end) "

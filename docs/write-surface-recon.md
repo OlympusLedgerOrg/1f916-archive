@@ -5,11 +5,16 @@
 > — 51 observations over 27 paths, no transport errors. The API is someone
 > else's and may change without notice.
 >
-> **Headline: the instrument did not work on this host.** `OPTIONS` returns `200`
-> with an identical blanket CORS list for *every* path, existent or not, and no
-> endpoint returned an `Allow` header at all. The write surface is therefore **not
-> mappable by any read-only method**, and most questions below close as
-> unanswered rather than answered. That is a real result, and it changes the plan.
+> **Headline: the instrument did not work on this host.** `OPTIONS` returned `200`
+> with an identical blanket CORS list on all 24 paths it was sent to, and not one
+> of the 27 probed paths returned an `Allow` header in any response. The write
+> surface is therefore **not mappable by `OPTIONS`**, which was the whole premise,
+> and most questions below close as unanswered rather than answered. That is a
+> real result, and it changes the plan.
+>
+> (The three control paths were probed with `GET` only — they exist to prove the
+> run reached a live host, not to measure method sets. So the `OPTIONS` finding
+> covers 24 paths; the `Allow` finding covers all 27.)
 
 **Method:** read-only. `GET` and `OPTIONS` only — both `safe` per RFC 9110
 §9.2.1, both creating no upstream state. Run by
@@ -65,12 +70,17 @@ it is the direction that argues for acquiring a credential.
 
 ### What actually happened: the `Allow` column came back empty everywhere
 
-Not one of the 27 probed paths returned an `Allow` header — not the live ones,
-not the missing ones. Every `OPTIONS` returned `200` with
-`Access-Control-Allow-Methods: GET, OPTIONS, POST`, identically, including for
-paths that plainly do not exist: `/api/apply`, `/api/join`, `/api/vote`,
-`/api/flag`, `/api/docs`. A CORS preflight handler is answering ahead of routing,
-so `OPTIONS` carries no per-resource information whatsoever.
+Not one of the 27 probed paths returned an `Allow` header — not the ones that
+answered `200`, not the ones that answered `404`. All 24 `OPTIONS` requests
+returned `200` with `Access-Control-Allow-Methods: GET, OPTIONS, POST`,
+identically, including on paths whose `GET` returned `404`: `/api/apply`,
+`/api/join`, `/api/vote`, `/api/flag`, `/api/docs`. A CORS preflight handler is
+answering ahead of routing, so `OPTIONS` carries no per-resource information
+whatsoever.
+
+(Measurement language on purpose: a `404` is an observed response, not a proof of
+absence — this document says so two sections down, and should not quietly assume
+otherwise here.)
 
 Two consequences, and the second is the one that matters.
 
@@ -167,9 +177,20 @@ Two positive findings survive, and they are the useful part:
 - **`/api/me` returns `401` JSON.** There is a per-identity endpoint, and it
   distinguishes an authenticated caller from an anonymous one.
 
-Together those say enrolment almost certainly exists. The probe simply did not
-find its door, and — given `OPTIONS` is inert here — no read-only probe of
-guessed paths ever will, except by guessing the right name.
+What those two do **not** establish is that an enrolment *mechanism* is exposed at
+all. Citizens exist; nothing observed says how one comes to exist. They could be
+provisioned by the operator, invited out of band, seeded, or created by an admin
+path with no public route. "A roster is readable" and "anyone may join" are
+different claims, and only the first was measured.
+
+That distinction is not pedantic — it changes the next step. If citizenship is
+operator-granted rather than self-serve, then asking the operator is not merely
+the polite route to the answer, it is the only route, and no amount of path
+guessing substitutes for it.
+
+What can be said: the probe did not find an enrolment door, and — given `OPTIONS`
+is inert here — the only read-only observation that could still find one is a
+`GET` on a correctly guessed name.
 
 ### 2. What credential does citizenship issue?
 
@@ -277,9 +298,13 @@ What was established:
   enforced somewhere (`/api/me`, `401`).
 - The enrolment and write endpoints are not at any of the 14 names guessed, and
   no machine-readable API description exists to correct the guesses from.
-- `OPTIONS` is inert on this host, so **no further read-only probing will help.**
-  Widening the path list would only produce more `200 … POST` answers that mean
-  nothing. A second recon pass of the same kind is not worth running.
+- `OPTIONS` is inert on this host, so **no further `OPTIONS` probing will help** —
+  widening the path list would only produce more `200 … POST` answers that mean
+  nothing. `GET` on a correctly guessed name could still find a route, so this is
+  not a capability limit; **declining to enumerate paths is a choice.** Guessing
+  at scale against someone else's service is scanning, whatever it is called, and
+  this archive does not have standing to do that to a host it is a guest on. A
+  second recon pass of the same kind is not worth running.
 
 Three ways forward, in the order they should be considered:
 
@@ -311,16 +336,20 @@ neither should change quietly:
 1. **`docs/api-semantics.md`: "No writes to 1f916 of any kind."** Becomes false.
    It gets rewritten to scope the claim to the collector, with the canary's write
    path named explicitly.
-2. **`README.md`: "There is no long-lived key anywhere in this project."** A
-   citizen credential is a long-lived secret. The claim gets narrowed to the
-   *anchoring* path, where it is load-bearing and must stay true.
+2. **`README.md`: "There is no long-lived key anywhere in this project."** Likely
+   becomes false — but note this is *not* established. §2 is unresolved, so the
+   credential's lifetime is unknown; `/api/me` returned `401` without naming a
+   scheme, and a `401` says nothing about how long a credential lives. Narrow the
+   claim to the *anchoring* path only once the credential is actually known.
 
-That second one carries a hard constraint on the design, and the recon exists
-partly to price it: **the posting credential must never be reachable from the
-signing workflow.** Today, compromising `capture.yml` gets an attacker a
+The constraint that follows does not depend on that lifetime at all, which is why
+it can be stated now: **whatever credential can post must never be reachable from
+the signing workflow.** Today, compromising `capture.yml` gets an attacker a
 short-lived Fulcio certificate bound to a workflow identity. If the same workflow
 could also post as the archive, one compromise yields both the archive's voice
-and its signature, and a forged canary would carry a real anchor. Separate
+and its signature, and a forged canary would carry a real anchor. That holds for
+a bearer token, a cookie, a refresh secret, or anything else — the exposure is
+"can post", not "is long-lived". Separate
 workflow, separate secret, separate trigger — and the canary is manual, never on
 the hourly schedule.
 
@@ -333,15 +362,22 @@ only, `contents: read`, no `id-token`, and it commits nothing — or run it loca
 
 ```bash
 scripts/recon-write-surface.sh recon-out
-# GET only: OPTIONS answers 200 with the same CORS list on every path here and
-# distinguishes nothing, so including it just pads the output with noise.
+# GET only: OPTIONS answers 200 with the same CORS list on every path it is sent
+# to here and distinguishes nothing, so including it just pads the output.
+#
+# `has("status")` is load-bearing: a transport failure is recorded as
+# {path, method, transport_error} with no status field, and `null != 404` is true
+# in jq — without the guard a failed request prints as a blank-status row and
+# reads like a successful observation.
 jq -r '.observations[]
-       | select(.method == "GET" and .status != 404)
+       | select(.method == "GET" and has("status") and .status != 404 and .status != 0)
        | [.path, .status, (.media_type // "-"), (.allow // [] | join("+") | if . == "" then "-" else . end), (.auth_scheme // "-")]
        | @tsv' recon-out/structure.json
 ```
 
-Roughly 45 requests, spaced 600 ms apart as the collector spaces its own. The run
+51 requests as currently configured — 3 control `GET`s, then `GET` and `OPTIONS`
+for each of 24 candidate paths — spaced 600 ms apart as the collector spaces its
+own, so about 35 seconds of wall clock. The run
 aborts before probing anything unknown if the known-live control endpoints do not
 respond, so a report of uniform `404`s from a host that is merely down cannot be
 mistaken for a host with no write surface.
