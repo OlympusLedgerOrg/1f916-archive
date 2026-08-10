@@ -5,3 +5,8 @@
 # those are the evidence and the commitments.
 *.tmp
 state/*.json.tmp
+
+# Recon output. The structural report is safe to commit deliberately, once read;
+# the raw bodies beside it are upstream-controlled prose that this repository
+# does not redistribute. Default to keeping the whole directory out.
+/recon-out

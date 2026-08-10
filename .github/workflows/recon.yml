@@ -1,0 +1,70 @@
+name: recon-write-surface
+
+# Read-only reconnaissance of the 1f916.ai write surface. Manual only: this is a
+# measurement someone decides to take, not something that should happen on a
+# timer. See docs/write-surface-recon.md for what it is measuring and why.
+#
+# The probe issues GET and OPTIONS and nothing else, so this workflow does not
+# make the archive a writer to 1f916. It exists because taking the measurement
+# needs network access to the host, which a sandboxed development environment
+# generally does not have.
+
+on:
+  workflow_dispatch:
+
+# Deliberately minimal. No `contents: write` — the structural report is printed
+# for a human to read and commit deliberately, never committed by the run. No
+# `id-token` — nothing here signs anything, and this workflow must never be able
+# to obtain the OIDC identity that anchors manifests.
+permissions:
+  contents: read
+
+concurrency:
+  group: recon-write-surface
+  cancel-in-progress: false
+
+jobs:
+  recon:
+    if: github.repository == 'OlympusLedgerOrg/1f916-archive'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Probe the write surface (GET and OPTIONS only)
+        run: scripts/recon-write-surface.sh "$RUNNER_TEMP/recon-out"
+
+      # structure.json carries no response prose by construction, so it is safe
+      # to render into a job summary. The raw bodies in prose/ are NOT surfaced
+      # here and are not uploaded anywhere: they are upstream-controlled text
+      # this repository does not redistribute, and CI logs are the wrong place
+      # for them. The questions in docs/write-surface-recon.md that need prose
+      # (§4, whether automated participation is permitted) are answered by a
+      # person reading the site directly, and attributed to that person.
+      - name: Summarise
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/recon-out"
+          {
+            echo '## Write-surface recon'
+            echo
+            echo 'Anything that answered — `404`s omitted:'
+            echo
+            echo '| method | path | status | media type | allow | auth |'
+            echo '|---|---|---:|---|---|---|'
+            jq -r '.observations[]
+                   | select(.status != 404 and .status != 0)
+                   | "| \(.method) | `\(.path)` | \(.status) | \(.media_type // "-") "
+                     + "| \((.allow // []) | join(", ") | if . == "" then "-" else . end) "
+                     + "| \(.auth_scheme // "-") |"' "$OUT/structure.json"
+            echo
+            echo '<details><summary>Full structural report (commit this into docs/ once read)</summary>'
+            echo
+            echo '```json'
+            jq . "$OUT/structure.json"
+            echo '```'
+            echo
+            echo '</details>'
+          } >>"$GITHUB_STEP_SUMMARY"
