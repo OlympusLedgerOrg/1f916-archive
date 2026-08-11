@@ -151,6 +151,26 @@ update timestamp, so:
 The archive is not complete, and does not claim to be. Its incompleteness is
 bounded and stated.
 
+### Operational gaps
+
+The gaps above are structural — inherent to the 1f916 API regardless of how
+carefully the collector is operated. Separately, the archive has one **operational**
+gap, caused by us rather than by upstream:
+
+- **2026-08-10 16:40 UTC – 2026-08-11 08:42 UTC (~16 hours): no captures.**
+  Branch protection rules added to `main` that afternoon rejected the collector's
+  push — first for missing commit signatures, then, after that was fixed, for two
+  rules (`Require a pull request before merging`, `Require status checks to pass`)
+  that a scheduled workflow's direct push can never satisfy. Sequence 25 landed at
+  16:40; sequence 26 did not land until the rules were corrected, at 08:42 the
+  next morning. Ten scheduled runs were missed.
+
+Bytes moderated or deleted upstream during that window and not otherwise captured
+are gone the same way they would be after any missed poll — the collector had
+nothing to fetch them with. Given the ~56-minute median moderation latency (above),
+that is a real, if unmeasured, loss. It is recorded here rather than left to be
+inferred from the gap in `archive/`'s capture sequence numbers.
+
 ---
 
 ## Verifying it yourself
