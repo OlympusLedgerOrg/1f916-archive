@@ -1,0 +1,585 @@
+{
+  "parent_version": 56,
+  "parent_root": "1dcc8fbdbdfd350ddd5d567f4de7bf52e896baa8337f91db9f2ee6c940409c9b",
+  "child_version": 57,
+  "child_root": "c14deaf83be7c3930550d70ba076de10a9e6427e2ea1ffb57ce269c97c26dfb7",
+  "added": [
+    {
+      "shard_id": "changes",
+      "record_id": "changes/captures/000057/page-0001.json",
+      "version": 1,
+      "content_hash": "88c9a93e81271f1d223124dae9f0861583a8aff6d80624e51e81ae18fa329dad"
+    },
+    {
+      "shard_id": "changes",
+      "record_id": "changes/captures/000057/page-0001.meta.json",
+      "version": 1,
+      "content_hash": "a55df0e011edc01f049d861798577b6ef699729f86fa49d3968498f27f739623"
+    },
+    {
+      "shard_id": "events",
+      "record_id": "events/captures/000057/page-0001.json",
+      "version": 1,
+      "content_hash": "3ab4c3b1f1413caa205c76603bfd9387d67b6d03623405a10c426f0156e719a2"
+    },
+    {
+      "shard_id": "events",
+      "record_id": "events/captures/000057/page-0001.meta.json",
+      "version": 1,
+      "content_hash": "7cc9563fb37f319b56b26c2655ac39e1f67640b05089107343bb9aeb608d9c94"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/100.json",
+      "version": 1,
+      "content_hash": "1d97f356236c1525665f04aef08ea1c9ce239d606b1e4e20c56f1d0f11002444"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/100.meta.json",
+      "version": 1,
+      "content_hash": "6b17e76fec492c0e64a5e8564e1e6992138dc94e988fa757a8996c1412725248"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/137.json",
+      "version": 1,
+      "content_hash": "9ae124ab8814035e170a4fdc1370772ccf22fda813664180107c0890bd0d2aca"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/137.meta.json",
+      "version": 1,
+      "content_hash": "3845c395863ec62934f497ece107b0bf06ecf135ab41e612a4ee8afd73e2f0d3"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/475.json",
+      "version": 1,
+      "content_hash": "4029e57036d909d113f31963f50181f13edb1f734257dc7e91b4982c47541263"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/475.meta.json",
+      "version": 1,
+      "content_hash": "1a0769887a618c1ed3210ab50487971f4c11ce34049dad1fb6081a4955f96b79"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/593.json",
+      "version": 1,
+      "content_hash": "84968e71f49e531f94d5f03341093af9f4a71a5536b651da6aa90ab1cf4cafd7"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/593.meta.json",
+      "version": 1,
+      "content_hash": "d4048a5df462a3da0112c8c01bbd992ca29147d5d658363126055a1dbebcb958"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/625.json",
+      "version": 1,
+      "content_hash": "284e111bbe42fd94d93d4ffac4dd003f76fdabe5c164adf5f165dc2cbd4c0c69"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/625.meta.json",
+      "version": 1,
+      "content_hash": "96bda057796c46d5b72d277de0e6ab50de06d7572d6ed0f60c7bc064c8abc4da"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/682.json",
+      "version": 1,
+      "content_hash": "9015bb6c766373b999242645ee926e2e8ed9b7635cd81097374d112579357dbb"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/682.meta.json",
+      "version": 1,
+      "content_hash": "d7821d1b6f1197176082d50f89bf468e3543fdfb6db7b0fa471fbf512eed7dbf"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/683.json",
+      "version": 1,
+      "content_hash": "609cbadc8ee69a5e60d0e2732723c2513f7b5297473a461104299a846272eeb6"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/683.meta.json",
+      "version": 1,
+      "content_hash": "9a02c91359b69936d1cb79e9cbfd9a7e4f423ba4bde54397681ba03d2e454750"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/684.json",
+      "version": 1,
+      "content_hash": "bd4fdfba267ebd174b68ff4a430d594eff31f341a8efd4f8df83611175bc67d3"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/684.meta.json",
+      "version": 1,
+      "content_hash": "4f149cbc43b396d89b500ac896163ea4e8e64e14329f3aadc07c7c4e0ea94903"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/685.json",
+      "version": 1,
+      "content_hash": "47dcca2789a367b9be7694057df5065262f7c3a9a6d88c0d9211e2c41e771dfb"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/685.meta.json",
+      "version": 1,
+      "content_hash": "8d925454090b8a50d9ec0d7fdb55b0a47daef42cbd9ae6cc74a74fc33cd16784"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/686.json",
+      "version": 1,
+      "content_hash": "cf232ea5d86bdacf8137261875ea21b4a1167488fc0216db4de6f8702e3f26a6"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/686.meta.json",
+      "version": 1,
+      "content_hash": "687ac6627eeac51cec9b1d2bda0035e6d29c16e8ab1c2d9042cef08ecf4a190c"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/687.json",
+      "version": 1,
+      "content_hash": "f57f8f60d3c9a5415769ca0a50758ff6aefb6557ac979727fd0bcd0cd94e7cad"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/687.meta.json",
+      "version": 1,
+      "content_hash": "528dee705d7f5f6a2d25f5ca619835c29703456244aa8164748bcccfad35e3dd"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/688.json",
+      "version": 1,
+      "content_hash": "2d6ea94e31b26c49ccc0967aa4f5f4b7f55ac20740b73f1122eaea4074c210c8"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/688.meta.json",
+      "version": 1,
+      "content_hash": "9dd634232f0896d0f25144c5a63a38e2bb9af7b86d5d537a49a286d05ead5822"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/689.json",
+      "version": 1,
+      "content_hash": "15169dad108c76958fc71f90855131e717f648ab8bc597a7af907275a8f9bcf9"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/689.meta.json",
+      "version": 1,
+      "content_hash": "8e1c888b5654067e36bd1ff1ea4e7aa4ed0290d3263a59a3b622e4d184dac776"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/690.json",
+      "version": 1,
+      "content_hash": "19a6367f3ebec8fc206af9b49ea5ddc12d4f66045107872886a235caa156b541"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/690.meta.json",
+      "version": 1,
+      "content_hash": "93ea56280b8084e691821da006605b1940ecf9ea9e7790c55f06bb85bb35445d"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/691.json",
+      "version": 1,
+      "content_hash": "0f443dd58b334477380ef201cd142e615357df492d27f5e0452b1d58ab8e6321"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/691.meta.json",
+      "version": 1,
+      "content_hash": "ff80bee3b4663e102afc9517ae2c0bd86cf5719a18047717d99e86262d0d0a8a"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/692.json",
+      "version": 1,
+      "content_hash": "d18a7e3bf48c897080b70a93040795aa4a321ce9d9c0a80f70b9c9234d9d03ad"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/692.meta.json",
+      "version": 1,
+      "content_hash": "02d39da10683186db54d244c622d2e2f785ee763fc5aaac5842d4475d54897a2"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/693.json",
+      "version": 1,
+      "content_hash": "2b44861da6e6967113355028339ef764950b69b87b18541a8a4e99d3a0c79d52"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/693.meta.json",
+      "version": 1,
+      "content_hash": "57af43987cd0f1b7a9db35ef3c97d7d24f98e1387f2ef6bc9cbefb20712fe694"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/694.json",
+      "version": 1,
+      "content_hash": "ac31a909d588cc0f6465bd3a759110c4aefd80bd1c4afe3b85438cd888bc5dbb"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/694.meta.json",
+      "version": 1,
+      "content_hash": "402820859475747fc72c334b8aa946451e209ebf68dc63c73065f9243603a60d"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/695.json",
+      "version": 1,
+      "content_hash": "19ad80b50c9dc6e16b63499807aad06325bb418a0e3b13f4e5ef22110a6cd641"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/695.meta.json",
+      "version": 1,
+      "content_hash": "f1f2dcbcf04f2d6d97819708993bfb6b4639ab0c6b14cd008b0821ee40864b80"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/696.json",
+      "version": 1,
+      "content_hash": "8724fe7b141a99aa43c3d06fa8a897908f5c10a436c521856e35f86aad1cf4e7"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/696.meta.json",
+      "version": 1,
+      "content_hash": "421765a11aa69a16b990631e38140b511825899823c22330a3204bd215829b18"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/697.json",
+      "version": 1,
+      "content_hash": "e7a3eb626122f073b613f29448a1993d17a0ea5ddb6e5be639d143b98e81e826"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/697.meta.json",
+      "version": 1,
+      "content_hash": "f09d75391cc241581558831a77c332ea7d6f5483c97000a172d872cad0ebdf50"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/698.json",
+      "version": 1,
+      "content_hash": "71f47d602b29c27b9823e3b86144913e54ea0fd5b141e136dcef1f325e87fa4f"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/698.meta.json",
+      "version": 1,
+      "content_hash": "0839fc062f803a9d7c462d20b229688d70857b618fdec2c268cc5104ec82bd12"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/699.json",
+      "version": 1,
+      "content_hash": "72abcb15564cbcd768fd4fd051086063b6efab3bb45e79071a437d66352f10ab"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/699.meta.json",
+      "version": 1,
+      "content_hash": "c4542e1a0c86cef42331eeaa9df58fae9170bdeb09bbbe4ffa554ba817604923"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/700.json",
+      "version": 1,
+      "content_hash": "e8a2a441bbcb43e9061b9ef903540c2fe93512a4b7757ae9948b9342e96de84d"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/700.meta.json",
+      "version": 1,
+      "content_hash": "03c5001e670125d355ec6c5f11b63a76deaca7bcf3223414b6c6c1ca62a97c76"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/701.json",
+      "version": 1,
+      "content_hash": "b0f6a7fc45fb27af1c09129eb8c0498d8e20cdf1b91876513981deb106e89e3a"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/701.meta.json",
+      "version": 1,
+      "content_hash": "eac765526576ed9703eb1aa402f6bef2b69083d74a86339f1de5826bcdaa336b"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/702.json",
+      "version": 1,
+      "content_hash": "f60bc6aae95c47e48f20c7f93fa44e66c157d7cf3c0a6c15695dd09160602722"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/702.meta.json",
+      "version": 1,
+      "content_hash": "618ba1430416026bfafa39e9bf9fdb0de1609c72c264de69389cd125e90bb326"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/703.json",
+      "version": 1,
+      "content_hash": "de3fec007344a9588a12fddf96d89f9b570f9e7f9551e77d2f7c390fe53cc330"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/703.meta.json",
+      "version": 1,
+      "content_hash": "54839b5396756a9e0701f2e45d24ea9f7360f28f2a885e79c33d4472eec8afcf"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/704.json",
+      "version": 1,
+      "content_hash": "d96bee4499bd67f0d7ab1fe325a0188ac6e8ee8ca64ae08a3f7ce817d5144979"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/704.meta.json",
+      "version": 1,
+      "content_hash": "3ea60b54b69751e43a5d0523aadb91644346230db4e4574212f625919606d617"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/705.json",
+      "version": 1,
+      "content_hash": "3194ee5c186881f0380b5d3c6b80f51bc777b1254dfb07825ff3ac94b9d4d2b4"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/705.meta.json",
+      "version": 1,
+      "content_hash": "5138110342457c5999e361a435f56c14b7c407a4a398fcda50efecaf02abfd0e"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/706.json",
+      "version": 1,
+      "content_hash": "99025dc41f75ffa25df37b9c8b57fb6d0aafe6cde4cb745c7b48ec7ad5d894e0"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/706.meta.json",
+      "version": 1,
+      "content_hash": "19583b9aeb5ff2ac0be415967cf7ced4ad76691db16652cfe208cd34be9dbcec"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/709.json",
+      "version": 1,
+      "content_hash": "d83f94d8d31b37afbdbdd577652db1f98b669cda111b0285cf8aa0777a2a27e4"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/709.meta.json",
+      "version": 1,
+      "content_hash": "646e1314ebef2846de3158c2e02861c1ef714cd2439e583e1fc3c20c79e33991"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/737.json",
+      "version": 1,
+      "content_hash": "5963c36782b810b20fcd15493829e4b15c7766b151aef303453cd8def043e00f"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/737.meta.json",
+      "version": 1,
+      "content_hash": "6c44c78bc6b296edbfa9d74c48f056cde1117e2334904ca29579491cd4f856f1"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/738.json",
+      "version": 1,
+      "content_hash": "7c1b0822c41aa7ab8932132a595ad25c3c9b0e5f9fa6dd832b1459a0f3be3943"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/738.meta.json",
+      "version": 1,
+      "content_hash": "31d86cab3faa306da9c13d9eb05b3d3f8225d27a7f70c8a4ef64d9b1439503ad"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/750.json",
+      "version": 1,
+      "content_hash": "4dd5143a0c1f8cdb1e756e2942928f79dcfcdf67db2f231c092fb1678e97da09"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/750.meta.json",
+      "version": 1,
+      "content_hash": "16eaa5c9a5c5df002be4a4907740e3dc57bd5694ad27c08bcdcf69cee0ca6115"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/765.json",
+      "version": 1,
+      "content_hash": "57e74bfb9c7e6fcf93bdd4c6e88bbf14159fed209fb99b164624d1c999643390"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/765.meta.json",
+      "version": 1,
+      "content_hash": "ed7ba91493c2ec065c4e252c5237f0e26af99c1884492c31c305762520e9d5b0"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/767.json",
+      "version": 1,
+      "content_hash": "ee7b219fe55d4cc1b60723ed2946cce02fd3c9843cf5d64e934737350e8881b3"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/767.meta.json",
+      "version": 1,
+      "content_hash": "82a81521f074d18ef7c98c23a82e0a9529cccea24cf7ec70d5bdd200316bed80"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/776.json",
+      "version": 1,
+      "content_hash": "ea79b6815da4a4fab3091ee82f9c7955fe38648de06454fdb174dadda1779862"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/776.meta.json",
+      "version": 1,
+      "content_hash": "963c2ce6149fabe97cfcfe32a11d0aa9aba91c448da3f6cea44fe3c80665e011"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/780.json",
+      "version": 1,
+      "content_hash": "e3e7c2074f24c1696e926b6a84f5b005334c85e42601c992f5d9064fbba4c75f"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/780.meta.json",
+      "version": 1,
+      "content_hash": "c976ed731bbb6a50c1ea6e83bfb4b89acfb76105ff86874f00d06a2a61b9217c"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/781.json",
+      "version": 1,
+      "content_hash": "9f809de865ef927d54abe12abd4dda4da81c48d5c7dd4ddbbfc5c087e3fce194"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/781.meta.json",
+      "version": 1,
+      "content_hash": "b53e9dd4a02e27cac53d2fed00205c9b53e252fb583990e49f5eabdc17659173"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/782.json",
+      "version": 1,
+      "content_hash": "4d38fee48362a053bdccd04761d1cee3837dd0a46232b0d812333a9c10174090"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/782.meta.json",
+      "version": 1,
+      "content_hash": "4192f9d3011492c8ed19659b5b8d7e8ab27ad967b412605ca402b87ab47af939"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/783.json",
+      "version": 1,
+      "content_hash": "fcd2acab370cc29187bb0c087107ee9e96b7386e8b6518504bdec8b4a987b643"
+    },
+    {
+      "shard_id": "post",
+      "record_id": "post/captures/000057/783.meta.json",
+      "version": 1,
+      "content_hash": "de2a9303844cd1aa2f86af4b03f98591d0182f3386a3b5c134cd3d61b01f23bd"
+    },
+    {
+      "shard_id": "site",
+      "record_id": "site/captures/000057/attest.json",
+      "version": 1,
+      "content_hash": "bcf878c9e63e62c8dd481b875e79491abefdb5670ec06f897a951532921b7512"
+    },
+    {
+      "shard_id": "site",
+      "record_id": "site/captures/000057/attest.meta.json",
+      "version": 1,
+      "content_hash": "13973fe6a73dae7a369f3f48e2cbbd5e2109f7ecb7e5cf304e557a8a7a182597"
+    },
+    {
+      "shard_id": "site",
+      "record_id": "site/captures/000057/docket.json",
+      "version": 1,
+      "content_hash": "404c2d1577777ab8e0fd7e6a2b88ada0298c432b2738f0d55ffeef8b7f3b782f"
+    },
+    {
+      "shard_id": "site",
+      "record_id": "site/captures/000057/docket.meta.json",
+      "version": 1,
+      "content_hash": "01ef0cc84acd48207204ac496c403a4aa3828868a487de1673bf2d5fb35fa6de"
+    },
+    {
+      "shard_id": "site",
+      "record_id": "site/captures/000057/front-door.meta.txt",
+      "version": 1,
+      "content_hash": "3c24a8defc012817a069c502f8593ead34799b7337654889bcf0372ece255520"
+    },
+    {
+      "shard_id": "site",
+      "record_id": "site/captures/000057/front-door.txt",
+      "version": 1,
+      "content_hash": "f2cfde26af10140d0b4b84953f3784907f595676143f851fbd86c5e39e807a79"
+    },
+    {
+      "shard_id": "site",
+      "record_id": "site/captures/000057/official.json",
+      "version": 1,
+      "content_hash": "cf7d83b959d305dd7f7ef664868c8ef04edbdba38450fbbd91a8e9bddd1eb771"
+    },
+    {
+      "shard_id": "site",
+      "record_id": "site/captures/000057/official.meta.json",
+      "version": 1,
+      "content_hash": "20afe3daf5997fdf281720326cd2b5197e5dc83c3d9887e958594e323cbedec3"
+    },
+    {
+      "shard_id": "treasury",
+      "record_id": "treasury/captures/000057/treasury.json",
+      "version": 1,
+      "content_hash": "76e4fdc360986f251a7331f40767ffd66253523589c00ee2d2ec4f9cc86bd529"
+    },
+    {
+      "shard_id": "treasury",
+      "record_id": "treasury/captures/000057/treasury.meta.json",
+      "version": 1,
+      "content_hash": "8590ab15d384bf284cac8a77437e39ddca0cb32c5aa7a4ddd9bc608800feb0b7"
+    }
+  ],
+  "removed": []
+}
