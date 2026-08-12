@@ -1,7 +1,7 @@
 {
   "schema": "1f916-archive/collector-state/v1",
-  "changes_cursor": 1786517570221,
-  "last_capture_seq": 48,
+  "changes_cursor": 1786521395063,
+  "last_capture_seq": 49,
   "captured_post_ids": [
     1,
     3,
@@ -761,14 +761,17 @@
     758,
     759,
     760,
-    761
+    761,
+    762,
+    763,
+    764
   ],
   "absent_post_ids": [
     2,
     27
   ],
-  "max_present_post_id": 761,
-  "refetch_offset": 479,
-  "last_run_ms": 1786517604089,
-  "runs": 48
+  "max_present_post_id": 764,
+  "refetch_offset": 504,
+  "last_run_ms": 1786521426904,
+  "runs": 49
 }
