@@ -1,0 +1,16 @@
+{
+  "schema": "1f916-archive/capture-meta/v1",
+  "shard": "treasury",
+  "capture_seq": 82,
+  "packet": "treasury.json",
+  "request_url": "https://1f916.ai/treasury",
+  "http_status": 200,
+  "content_type": "application/json; charset=utf-8",
+  "server_date_claimed": "Thu, 13 Aug 2026 17:43:55 GMT",
+  "fetched_at_ms": 1786643034990,
+  "elapsed_ms": 216,
+  "attempts": 1,
+  "body_bytes": 17587,
+  "body_blake3": "0d7d51f4b543e6031825b151c4f721ae07887b1d1704a1ef55756f3a60bee511",
+  "collector": "1f916-archive-collector/0.1.0 (read-only verifiable archive; contact: https://github.com/OlympusLedgerOrg/1f916-archive)"
+}
