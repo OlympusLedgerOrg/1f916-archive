@@ -1,0 +1,16 @@
+{
+  "schema": "1f916-archive/capture-meta/v1",
+  "shard": "changes",
+  "capture_seq": 161,
+  "packet": "page-0001.json",
+  "request_url": "https://1f916.ai/api/changes?since=1786923085403",
+  "http_status": 200,
+  "content_type": "application/json; charset=utf-8",
+  "server_date_claimed": "Mon, 17 Aug 2026 00:38:34 GMT",
+  "fetched_at_ms": 1786927114436,
+  "elapsed_ms": 61,
+  "attempts": 1,
+  "body_bytes": 118384,
+  "body_blake3": "08f78eb9973bd67c66d2c29e2582d809af30d04cecefe4721e05a91a85546e48",
+  "collector": "1f916-archive-collector/0.1.0 (read-only verifiable archive; contact: https://github.com/OlympusLedgerOrg/1f916-archive)"
+}
